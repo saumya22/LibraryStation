@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+// var debug = require('debug')('LibraryStation');
+// var app = require('../app');
+// var io = require('socket.io');
+// var heartbeats = require('heartbeats');
+
+// app.set('port', process.env.PORT || 3001);
+
+// var server = app.listen(app.get('port'), function() {
+// 	var socket = io.listen(server);
+
+// 	socket.on('connection', function(socket) {
+// 		var heart = heartbeats.createHeart(1000);
+// 		heart.createEvent(5, function(heartbeat, last){
+// 		  socket.emit('welcome', {message: "The server's heart is beating successfully, Please check after 5 seconds, " + Date()});
+// 		});
+// 	});
+//   debug('Express server listening on port ' + server.address().port);
+// });
+
+

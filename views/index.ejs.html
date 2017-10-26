@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html ng-app="app">
+<head>
+	<title>Library Station</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" >
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true&libraries=places"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	<style type="text/css">
+  
+    table.searchTable, th.searchHead , td.searchData  {
+	  border: 1px solid grey;
+	  border-collapse: collapse;
+	  padding: 5px;
+	}
+	
+	table.rowOdd tr:nth-child(odd)	{
+	  background-color: #f1f1f1;
+	}
+	
+	table.rowEven tr:nth-child(even) {
+	  background-color: #ffffff;
+	}
+
+    .searchBox
+    {
+      width: 250px;
+      vertical-align: middle;
+    }
+
+    .gradient {
+		background: -webkit-gradient(linear, left top, left bottom, from(#1dcaff), to(#ffffff)) fixed;
+	}
+
+	.centered{
+	    margin: 0 auto;
+	}
+
+	.content {
+	  position: fixed;
+	  margin-top: 50px;
+	  top: 50%;
+	  left: 50%;
+	  transform: translate(-50%, -50%);
+
+	}
+	
+	.container {
+		margin-top: 10px;
+		margin-left: none;
+	}
+
+	.padding {
+	    padding-top: 10px;
+	    padding-right: 12px;
+	    padding-bottom: 25px;
+	    padding-left: 12px;
+	}
+
+	.padding2 {
+	    padding-top: 0px;
+	    padding-bottom: 25px;
+	}
+
+	.modalDialog {
+		position: fixed;
+		font-family: Arial, Helvetica, sans-serif;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		background: rgba(0,0,0,0.8);
+		z-index: 99999;
+		opacity:0;
+		-webkit-transition: opacity 400ms ease-in;
+		-moz-transition: opacity 400ms ease-in;
+		transition: opacity 400ms ease-in;
+		pointer-events: none;
+	}
+
+	.modalDialog:target {
+		opacity:1;
+		pointer-events: auto;
+	}
+
+	.modalDialog > div {
+		width: 400px;
+		position: relative;
+		margin: 10% auto;
+		padding: 5px 20px 13px 20px;
+		border-radius: 10px;
+		background: #fff;
+		background: -moz-linear-gradient(#fff, #999);
+		background: -webkit-linear-gradient(#fff, #999);
+		background: -o-linear-gradient(#fff, #999);
+	}
+
+	.close {
+		background: #606061;
+		color: #FFFFFF;
+		line-height: 25px;
+		position: absolute;
+		right: -12px;
+		text-align: center;
+		top: -10px;
+		width: 24px;
+		text-decoration: none;
+		font-weight: bold;
+		-webkit-border-radius: 12px;
+		-moz-border-radius: 12px;
+		border-radius: 12px;
+		-moz-box-shadow: 1px 1px 3px #000;
+		-webkit-box-shadow: 1px 1px 3px #000;
+		box-shadow: 1px 1px 3px #000;
+	}
+
+	.close:hover { 
+	background: #00d9ff; 
+	}
+	
+	@media screen and (max-width: 375px) {
+	.content  { width: 70%; }
+	.h3heading { font-size: 20px;}
+	.tablefont{ font-size: 8.9px;}
+	.hi_heading {font-size: 24px;}
+	}
+	
+  </style>
+  
+  </head>
+<body class="gradient">
+
+<ng-view></ng-view>
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular-route.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.1/angular-cookies.min.js"></script>
+<script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.11.0.js"></script>
+<!--<script src="javascripts/smart-table.js"></script>-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-smart-table/2.1.7/smart-table.min.js"></script>
+<script src="https://librarystationapp.herokuapp.com/socket.io/socket.io.js"></script>
+<script src="javascripts/socket.js"></script>
+
+<script type="text/ng-template" id="/ModalContent.html">
+	<div class="modal-body" style="padding:0px">
+	   <div class="alert alert-{{data.mode}}" style="margin-bottom:0px">
+	     <button type="button" class="close" data-ng-click="close()" >
+	       <span class="glyphicon glyphicon-remove-circle"></span>
+	    </button>
+	   <strong>{{data.boldTextTitle}}</strong> {{data.textAlert}}
+	 </div>
+	</div>
+</script>
+
+<script type="text/ng-template" id="/addBookModal.html">
+	<div class="modal-body" style="padding:0px">
+	   <div class="alert alert-{{data.mode}}" style="margin-bottom:0px">
+	     <button type="button" class="close" data-ng-click="close()" >
+	       <span class="glyphicon glyphicon-remove-circle"></span>
+	    </button>
+
+				<form name="bookForm"  ng-init="setFormScope(this)">
+					<p><input type="text" class="form-control" placeholder="Book Title" ng-model="title" /></p>
+					<p><input type="text" class="form-control" placeholder="Book Desctiption" ng-model="description" /></p>
+					<p><input type="text" class="form-control" placeholder="Book Publisher" ng-model="publisher" /></p>
+					<p><input type="text" class="form-control" placeholder="Edition Year" ng-model="year" /></p>
+					<p><input type="number" class="form-control" placeholder="Book Price" ng-model="price" /></p>
+
+					<button type="submit" class="btn btn-success" ng-click="addBook()"><i class="glyphicon glyphicon-plus"></i> Add Book</button>
+				</form>
+
+	 </div>
+	</div>
+</script>
+
+<script type="text/ng-template" id="/cartModal.html">
+	<div class="modal-body" style="padding:0px">
+	   <div class="alert alert-{{data.mode}}" style="margin-bottom:0px">
+	     <button type="button" class="close" data-ng-click="close()" >
+	       <span class="glyphicon glyphicon-remove-circle"></span>
+	    </button>
+
+	    <div>
+			<h1 style="color:#000000">Items in Your Cart</h1>
+			<table  st-table="rowCollection" class="table table-hover">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Price</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr st-select-row="x"  ng-repeat="x in cart">
+					<td>{{x.title}}</td>
+					<td>{{x.price}}</td>
+					<td>
+						<button ng-click="removeCartItem($index)"><i class="glyphicon glyphicon-trash"></i></button>
+					</td>
+				</tr>
+			</tbody>
+			</table>
+
+		</div>
+
+		<button class="btn btn-success" ng-click="checkout()"><i class="glyphicon glyphicon-log-out"></i>Checkout Order</button>
+
+	 </div>
+	</div>
+</script>
+
+<script type="text/ng-template" id="/register.html">
+	<div class="container">
+		<div class="centered text-center">
+			<div class="jumbotron">
+				<h1 style="color:#1dcaff">Library Registration</h1>
+				<p>Please enter your details below and click Sign Up</p>
+			</div>
+			</br>
+			<div></div>
+			<div class="content" style="margin-top: 10px;">
+				<form ng-submit="addUser()">
+					<p><input type="text" class="form-control" placeholder="Username" ng-model="username" /></p>
+					<p><input type="password" class="form-control" placeholder="Password" ng-model="password" /></p>
+					<p><input type="text" class="form-control" placeholder="First Name" ng-model="firstname" /></p>
+					<p><input type="text" class="form-control" placeholder="Last Name" ng-model="lastname" /></p>
+					<p><input type="text" class="form-control" placeholder="Email Address" ng-model="email" /></p>
+
+					<button type="submit" class="btn btn-success"><i class="glyphicon glyphicon-plus"></i> Sign Up</button>
+					<button class="btn btn-success" ng-click="cancelReg()" type="button"><i class="glyphicon glyphicon-ban-circle"></i> Cancel</button>
+				</form>
+			</div>
+		</div>
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="/login.html">
+	<div class="container">
+		<div class="centered text-center">
+			<div class="jumbotron">
+			    <h1 style="color:#1dcaff">Library Station</h1>
+				<p>Please log in to proceed</p>
+			</div>
+		    <div class="content">
+			<audio style="width: 250px;" src="http://movie-sounds.org/quotes/sds1e3/And-the-best-place-to-find-a-book-is-in-the-library.mp3" controls>Your browser does not support the audio element.</audio><br/><br/>
+			<form ng-submit="addItem()">
+				<p><input type="text" class="form-control" placeholder="Username" ng-model="username" /></p>
+				<p><input type="password" class="form-control" placeholder="Password" ng-model="password" /></p>
+
+				<button class="btn btn-success" type="submit"  value="Sign In"><i class="glyphicon glyphicon-log-in"></i> Log In</button>
+				<button class="btn btn-success" ng-click="reset()" type="button"><i class="glyphicon glyphicon-user"></i> Register</button>
+			</form>
+			</div>
+		</div>
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="/home.html">
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <!-- Brand and toggle get grouped for better mobile display -->
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand active" href="#/home">Home<span class="sr-only">(current)</span></a>
+	    </div>
+
+	    <!-- Collect the nav links, forms, and other content for toggling -->
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+	      <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+
+<div class="padding">
+	<h1 class="hi_heading" style="color:#000000"> Hi, {{firstname}} {{lastname}}</h1>
+
+	<p></p>
+	<div class="container"  style="margin-top: 10px;">
+		<div class="centered text-center">
+			<span><form class="form-inline">
+			  <div class="form-group">
+			    <div class="input-group">
+			      <input type="text" style="width: 250px" class="searchBox form-control" data-mask="999-99-999-9999-9" placeholder="Please enter the ISBN of the book" ng-model="bookNum">
+			    </div>
+			  </div>
+			  <button type="button" class="btn btn-success" ng-click="getBook()"><i class="glyphicon glyphicon-search"></i> Search</button>
+			  <button type="button" class="btn btn-success" ng-click="hideBook()"><i class="glyphicon glyphicon-ban-circle"></i> Cancel</button>
+			</form></span>
+		</div>
+
+	</div>
+	<br/>
+	<p></p>
+	<div ng-show="showvalue">
+	<img ng-src="{{bookData.items[0].volumeInfo.imageLinks.thumbnail}}"/>
+	<p>{{bookData.items[0].volumeInfo.description}}</p>
+	<table  st-table="rowCollection" class="table  table-hover" ng-repeat="x in bookData.items">
+		<tr>
+			<td>Title</td>
+			<td>{{x.volumeInfo.title}}</td>
+		</tr>
+		<tr>
+			<td>Author(s)</td>
+			<td>{{x.volumeInfo.authors}}</td>
+		</tr>
+		<tr>
+			<td>Publisher</td>
+			<td>{{x.volumeInfo.publisher}}</td>
+		</tr>
+		<tr>
+			<td>Published Date</td>
+			<td>{{x.volumeInfo.publishedDate}}</td>
+		</tr>
+		<tr>
+			<td>Language</td>
+			<td>{{x.volumeInfo.language}}</td>
+		</tr>
+		<tr>
+			<td>Web Reader Link</td>
+			<td><a href={{x.accessInfo.webReaderLink}}>Please click to read</a></td>
+		</tr>
+		<tr>
+			<td>Add to List</td>
+			<td>
+				<button class="btn btn-success" ng-click="addBook()">
+				<span class="glyphicon glyphicon-save"></span>Click To Add to Reading List
+				</button>
+			</td>
+		</tr>
+	</table>
+	<hr>
+	</div>
+<div>
+<h3 class="h3heading" style="color:#000000">Available Books in the Library</h3>
+<table  st-table="rowCollection" class="table table-hover">
+	<thead>
+		<tr>
+			<th>ISBN</th>
+			<th>Title</th>
+			<th>Publisher</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="tablefont" st-select-row="x"  ng-repeat="x in bookList.items">
+			<td>{{x.volumeInfo.industryIdentifiers[0].identifier}}</td>
+			<td>{{x.volumeInfo.title}}</td>
+			<td>{{x.volumeInfo.publishedDate}}</td>
+		</tr>
+	</tbody>
+			<tfoot>
+			<tr>
+				<td colspan="5" class="text-center">
+					<div st-pagination="" st-items-by-page=10 st-displayed-pages="7"></div>
+				</td>
+			</tr>
+		</tfoot>
+	</table>
+
+</div>
+</div>
+</script>
+
+<script type="text/ng-template" id="/readingList.html">
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <!-- Brand and toggle get grouped for better mobile display -->
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+
+	    <!-- Collect the nav links, forms, and other content for toggling -->
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+	      <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+
+<div class="padding">
+	<h1 class="h3heading">Reading List for {{firstname}} {{lastname}}</h1>
+	<table st-table="displayedCollection" st-safe-src="readingList" class="table table-hover">
+	<thead>
+		<tr>
+			<th>ISBN</th>
+			<th>Title</th>
+			<th>Date Added</th>
+		</tr>
+		<tr>
+			<th><input st-search="ISBN" class="input-sm form-control" data-mask="9999999999999" placeholder="search for ISBN" type="search"/></th>
+			<th colspan="3"><input st-search="title" class="input-sm form-control" placeholder="search for Title" type="search"/></th>
+
+		</tr>
+	</thead>
+	<tbody class="rowlink">
+		<tr class="tablefont" st-select-row="row" ng-repeat="row in displayedCollection">
+			<td>{{row.ISBN}}</td>
+			<td><a ng-href="" ng-click="openBook(row, $index)">{{row.title}}</a></td>
+			<td>{{row.created_at | date}}</td>
+			<td>
+			<button type="button" ng-click="removeItem(row)" id = "remove" class="btn btn-sm btn-danger">
+				<i class="glyphicon glyphicon-minus-sign"></i>
+			</button>
+			</td>
+		</tr>
+	</tbody>
+	</table>
+	</div>
+</script>
+
+<script type="text/ng-template" id="/bookdetails.html">
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <!-- Brand and toggle get grouped for better mobile display -->
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+
+	    <!-- Collect the nav links, forms, and other content for toggling -->
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+
+<div class="padding">
+    <h2>{{book.volumeInfo.title}}</h2>
+	<img ng-src="{{book.volumeInfo.imageLinks.thumbnail}}"/>
+	<p style="color:#000000">{{book.volumeInfo.description}}</p>
+	<table  class="table table-hover">
+		<tr>
+			<td>Title</td>
+			<td>{{book.volumeInfo.title}}</td>
+		</tr>
+		<tr>
+			<td>Author(s)</td>
+			<td>{{book.volumeInfo.authors}}</td>
+		</tr>
+		<tr>
+			<td>Publisher</td>
+			<td>{{book.volumeInfo.publisher}}</td>
+		</tr>
+		<tr>
+			<td>Published Date</td>
+			<td>{{book.volumeInfo.publishedDate}}</td>
+		</tr>
+		<tr>
+			<td>Language</td>
+			<td>{{book.volumeInfo.language}}</td>
+		</tr>
+		<tr>
+			<td>Web Reader Link</td>
+			<td><a ng-href={{book.accessInfo.webReaderLink}} style="color:#1dcaff">Please click to read</a></td>
+		</tr>
+	</table>
+</div>
+
+</script>
+
+<div  class="container" ng-app="app">
+<script type="text/ng-template" id="/bookstore.html">
+
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+		    <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="padding">
+		<h3 class="h3heading" style="color:#000000">Online Book Store</h3>
+		<button class="btn btn-success" ng-click="openModal()">
+			<span class="glyphicon glyphicon-save"></span> Add a Book to Sell
+		</button>
+
+
+
+
+		<table  st-table="rowCollection" class="table table-hover">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Year</th>
+					<th>Publisher</th>
+					<th>Price($)</th>
+					<th>Seller</th>
+					<th>Follow</th>
+					<th>Add</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class="tablefont" st-select-row="x"  ng-repeat="x in bookstore">
+					<td>{{x.title}}</td>
+					<td>{{x.year}}</td>
+					<td>{{x.publisher}}</td>
+					<td>{{x.price}}</td>
+					<td>{{x.username}}</td>
+					<td><div ng-if="following.indexOf(x.userId) == 0">Preferred Seller</div>
+						<div ng-if="following.indexOf(x.userId) == -1">
+							<button type="button" ng-click="followSeller(x)" id = "follow" class="btn btn-success">
+								<span class="glyphicon glyphicon-thumbs-up"></span> Follow Seller
+							</button>
+						</div>
+					<td>
+						<button type="button" ng-click="addToCart(x)" id = "add" class="btn btn-sm btn-danger">
+							<i class="glyphicon glyphicon-plus"></i>
+						</button>
+					</td>
+
+				</tr>
+			</tbody>
+					<tfoot>
+					<tr>
+						<td colspan="5" class="text-center">
+							<div st-pagination="" st-items-by-page=10 st-displayed-pages="7"></div>
+						</td>
+					</tr>
+				</tfoot>
+			</table>
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="/booksbought.html">
+
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+		    <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="padding">
+		<h3 class="h3heading" style="color:#000000">You Past Purchases</h3>
+
+
+		<table  st-table="rowCollection" class="table table-hover">
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Price(in $)</th>
+
+				</tr>
+			</thead>
+			<tbody>
+				<tr st-select-row="x"  ng-repeat="x in booksbought">
+					<td>{{x.title}}</td>
+					<td>{{x.price}}</td>
+
+				</tr>
+			</tbody>
+					<tfoot>
+					<tr>
+						<td colspan="5" class="text-center">
+							<div st-pagination="" st-items-by-page=10 st-displayed-pages="7"></div>
+						</td>
+					</tr>
+				</tfoot>
+			</table>
+	</div>
+
+</script>
+
+<script type="text/ng-template" id="/location.html">
+
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+		    <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="padding" style="color:#1dcaff">
+		<h1 class="h3heading" style="color:#000000" id="loc">Here are the Libraries near you</h1>
+		<div id="mapholder" class="centered"></div>
+	</div>
+
+
+</script>
+
+<script type="text/ng-template" id="/aboutus.html">
+
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+		    <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="padding" style="color:#1dcaff">
+	<div class="container">
+	<h1 class="h3heading" style="color:#000000" id="loc">A video showing our goals and aim</h1>
+	<iframe width="560" height="315" src="https://www.youtube.com/embed/Gt5sWd5UtUk" frameborder="0" allowfullscreen></iframe>
+	<br><br><br>
+	<p style="color:#000000"><i>"An interesting excerpt from the movie National Treasure about Library"<i></p>
+	<audio style="width: 560px;" src="http://www.moviesoundclips.net/movies1/nationaltreasure/riley.mp3" controls>Your browser does not support audio</audio>
+	</div>
+	</div>
+
+
+</script>
+
+<script type="text/ng-template" id="/serverstats.html">
+
+
+	<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="#/home">Home</a>
+	    </div>
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/readingList">Reading List<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/bookstore">Book Store<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/booksbought">Books Bought<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/aboutus">About Us<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav">
+	        <li><a href="#/location">Library Locator<span class="sr-only">(current)</span></a></li>
+	      </ul>
+  	      <ul class="nav navbar-nav">
+	        <li><a href="#/serverstats">Server Heartbeat<span class="sr-only">(current)</span></a></li>
+	      </ul>
+	      <ul class="nav navbar-nav navbar-right">
+		    <li><a>
+			    <button type="button" ng-click="showCart()" class="btn">
+						<i class="glyphicon glyphicon-shopping-cart"></i>
+				</button></a>
+			</li>
+	        <li><a href="#/home" style="color:#1dcaff">Logged in as {{username}}</a></li>
+	        <li><a href="" ng-click="logOut()">Logout</a></li>
+
+	      </ul>
+	    </div>
+	  </div>
+	</nav>
+
+	<div class="padding">
+		<h1 class="h3heading">Updates from server are shown here <small>(Note: Updated every 5 seconds)</small></h1>
+		<div>
+			<ul class="tablefont" id="messages"></ul>
+		</div>
+	</div>
+
+
+
+</script>
+
+
+<script>
+angular.module('app', ['ngRoute', 'ui.bootstrap', 'smart-table', 'btford.socket-io'])
+
+
+	.controller('RegisterController', ['$rootScope', '$scope', '$location', '$http', function ($rootScope, $scope, $location, $http) {
+		$scope.addUser = function() {
+				var postResp = $http({
+					    method: 'POST',
+					    url: '/api/users',
+					    data: {username: $scope.username, password: $scope.password, email: $scope.email,
+					    	firstname: $scope.firstname, lastname: $scope.lastname}
+
+					})
+		        postResp.success(function(data){
+		        $scope.loggedData = data.data;
+
+		    	var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",encode:function(e){var t="";var n,r,i,s,o,u,a;var f=0;e=Base64._utf8_encode(e);while(f<e.length){n=e.charCodeAt(f++);r=e.charCodeAt(f++);i=e.charCodeAt(f++);s=n>>2;o=(n&3)<<4|r>>4;u=(r&15)<<2|i>>6;a=i&63;if(isNaN(r)){u=a=64}else if(isNaN(i)){a=64}t=t+this._keyStr.charAt(s)+this._keyStr.charAt(o)+this._keyStr.charAt(u)+this._keyStr.charAt(a)}return t},decode:function(e){var t="";var n,r,i;var s,o,u,a;var f=0;e=e.replace(/[^A-Za-z0-9\+\/\=]/g,"");while(f<e.length){s=this._keyStr.indexOf(e.charAt(f++));o=this._keyStr.indexOf(e.charAt(f++));u=this._keyStr.indexOf(e.charAt(f++));a=this._keyStr.indexOf(e.charAt(f++));n=s<<2|o>>4;r=(o&15)<<4|u>>2;i=(u&3)<<6|a;t=t+String.fromCharCode(n);if(u!=64){t=t+String.fromCharCode(r)}if(a!=64){t=t+String.fromCharCode(i)}}t=Base64._utf8_decode(t);return t},_utf8_encode:function(e){e=e.replace(/\r\n/g,"\n");var t="";for(var n=0;n<e.length;n++){var r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r)}else if(r>127&&r<2048){t+=String.fromCharCode(r>>6|192);t+=String.fromCharCode(r&63|128)}else{t+=String.fromCharCode(r>>12|224);t+=String.fromCharCode(r>>6&63|128);t+=String.fromCharCode(r&63|128)}}return t},_utf8_decode:function(e){var t="";var n=0;var r=c1=c2=0;while(n<e.length){r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r);n++}else if(r>191&&r<224){c2=e.charCodeAt(n+1);t+=String.fromCharCode((r&31)<<6|c2&63);n+=2}else{c2=e.charCodeAt(n+1);c3=e.charCodeAt(n+2);t+=String.fromCharCode((r&15)<<12|(c2&63)<<6|c3&63);n+=3}}return t}}
+
+
+				var string = $scope.loggedData.username+':'+$scope.password;
+
+				var encodedString = Base64.encode(string);
+				localStorage.setItem("Auth", encodedString)
+				localStorage.setItem("username", $scope.loggedData.username)
+				localStorage.setItem("firstname", $scope.loggedData.firstname)
+				localStorage.setItem("lastname", $scope.loggedData.lastname)
+				localStorage.setItem("email", $scope.loggedData.email_id)
+				localStorage.setItem("userId", $scope.loggedData._id)
+				localStorage.setItem("followers", $scope.loggedData.followers)
+				localStorage.setItem("following", $scope.loggedData.following)
+				$location.path('/home');
+
+		      }).error(function(data, status){
+		        console.log(data, status);
+		        $scope.loggedData = [];
+		      });
+
+
+		}
+		$scope.cancelReg = function () {
+			$location.path("/")
+		}
+
+	}])
+
+	.controller('LoginController', ['$rootScope', '$scope', '$location', '$http', '$modal', function ($rootScope, $scope, $location, $http, $modal) {
+
+		localStorage.setItem("username", "")
+		localStorage.setItem("firstname", "")
+		localStorage.setItem("lastname", "")
+		localStorage.setItem("email", "")
+		localStorage.setItem("userId", "")
+		localStorage.setItem("followers", "")
+		localStorage.setItem("following", [])
+
+	$scope.reset = function() {
+		$location.path('/register');
+	}
+    $scope.addItem = function() {
+    	var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",encode:function(e){var t="";var n,r,i,s,o,u,a;var f=0;e=Base64._utf8_encode(e);while(f<e.length){n=e.charCodeAt(f++);r=e.charCodeAt(f++);i=e.charCodeAt(f++);s=n>>2;o=(n&3)<<4|r>>4;u=(r&15)<<2|i>>6;a=i&63;if(isNaN(r)){u=a=64}else if(isNaN(i)){a=64}t=t+this._keyStr.charAt(s)+this._keyStr.charAt(o)+this._keyStr.charAt(u)+this._keyStr.charAt(a)}return t},decode:function(e){var t="";var n,r,i;var s,o,u,a;var f=0;e=e.replace(/[^A-Za-z0-9\+\/\=]/g,"");while(f<e.length){s=this._keyStr.indexOf(e.charAt(f++));o=this._keyStr.indexOf(e.charAt(f++));u=this._keyStr.indexOf(e.charAt(f++));a=this._keyStr.indexOf(e.charAt(f++));n=s<<2|o>>4;r=(o&15)<<4|u>>2;i=(u&3)<<6|a;t=t+String.fromCharCode(n);if(u!=64){t=t+String.fromCharCode(r)}if(a!=64){t=t+String.fromCharCode(i)}}t=Base64._utf8_decode(t);return t},_utf8_encode:function(e){e=e.replace(/\r\n/g,"\n");var t="";for(var n=0;n<e.length;n++){var r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r)}else if(r>127&&r<2048){t+=String.fromCharCode(r>>6|192);t+=String.fromCharCode(r&63|128)}else{t+=String.fromCharCode(r>>12|224);t+=String.fromCharCode(r>>6&63|128);t+=String.fromCharCode(r&63|128)}}return t},_utf8_decode:function(e){var t="";var n=0;var r=c1=c2=0;while(n<e.length){r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r);n++}else if(r>191&&r<224){c2=e.charCodeAt(n+1);t+=String.fromCharCode((r&31)<<6|c2&63);n+=2}else{c2=e.charCodeAt(n+1);c3=e.charCodeAt(n+2);t+=String.fromCharCode((r&15)<<12|(c2&63)<<6|c3&63);n+=3}}return t}}
+
+		// Define the string
+		var string = $scope.username+':'+$scope.password;
+
+		// Encode the String
+		var encodedString = Base64.encode(string);
+		$scope.auth = encodedString
+    	var resp = $http.get('/api/users/'+$scope.username, {
+        headers: {'Authorization': "'Basic " + encodedString + "'"}
+	});
+        resp.success(function(data){
+        $scope.loggedData = data;
+  //       $scope.goNext = function (hash) {
+		// 	$location.path(hash);
+		// }
+		$rootScope.firstname = $scope.loggedData.firstname
+		$rootScope.lastname = $scope.loggedData.lastname
+		$scope.permission = true
+		localStorage.setItem("username", $scope.loggedData.username)
+		localStorage.setItem("firstname", $scope.loggedData.firstname)
+		localStorage.setItem("lastname", $scope.loggedData.lastname)
+		localStorage.setItem("email", $scope.loggedData.email_id)
+		localStorage.setItem("userId", $scope.loggedData._id)
+		localStorage.setItem("followers", $scope.loggedData.followers)
+		localStorage.setItem("following", $scope.loggedData.following)
+
+		localStorage.setItem("Auth", $scope.auth)
+		$location.path('/home');
+
+      }).error(function(data, status){
+      	console.log(data, status);
+        $scope.loggedData = [];
+	    $scope.data = {
+		  boldTextTitle: "Username or Password Invalid",
+		  textAlert : "Please try logging again",
+		 mode : 'danger'
+		}
+
+		$scope.data.mode = 'danger';
+
+		var modalInstance = $modal.open({
+		  templateUrl: '/ModalContent.html',
+		  controller: 'ModalInstanceCtrl',
+		  backdrop: true,
+		  keyboard: true,
+		  backdropClick: true,
+		  size: 'lg',
+		  resolve: {
+		    data: function () {
+		      return $scope.data;
+		    }
+		  }
+		});
+
+
+		modalInstance.result.then(function (selectedItem) {
+		  $scope.selected = selectedItem;
+		}, function () {
+		  console.log('Modal dismissed at: ' + new Date());
+
+		});
+      });
+    }
+    $scope.username = localStorage.getItem("username")
+    $scope.firstname = localStorage.getItem("firstname")
+    $scope.lastname = localStorage.getItem("lastname")
+    $scope.auth = localStorage.getItem("Auth")
+	}])
+
+	.controller('HomeController', ['$scope', '$location', '$routeParams', '$http', '$modal', function ($scope, $location, $routeParams, $http, $modal) {
+
+		$scope.showvalue = true
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+
+		var books = $http.get('https://www.googleapis.com/books/v1/volumes?q=mongodb')
+		books.success(function(data) {
+			$scope.bookList = data;
+		}).error(function(data, status) {
+			console.log(data, status)
+		})
+
+		$scope.hideBook = function() {
+			$scope.showvalue = false
+		}
+
+		$scope.getBook = function() {
+			$scope.bookNum = $scope.bookNum.replace("-","").replace("-","").replace("-","").replace("-", "")
+			var bookResp = $http.get('https://www.googleapis.com/books/v1/volumes?q=isbn:'+$scope.bookNum)
+
+			bookResp.success(function(data) {
+			$scope.bookData = data;
+			$scope.showvalue = true
+		}).error(function(data, status) {
+			console.log(data, status)
+		});
+		}
+
+		$scope.addBook = function() {
+			$scope.showSuccessAlert = true;
+			var bookDetails = $scope.bookData.items[0]
+			var postResp = $http({
+			    method: 'POST',
+			    url: '/api/users/'+$scope.username+'/books',
+			    data: {username: $scope.username, title: $scope.bookData.items[0].volumeInfo.title,
+			    	ISBN: $scope.bookData.items[0].volumeInfo.industryIdentifiers[0].identifier,
+			    	details: bookDetails},
+			    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+			})
+	        postResp.success(function(data){
+	        $scope.respData = data;
+
+			$scope.data = {
+		      boldTextTitle: "Done",
+		      textAlert : "Successfully Added the Book to Reading List",
+		     mode : 'success'
+		    }
+
+		    $scope.data.mode = 'success';
+
+		    var modalInstance = $modal.open({
+		      templateUrl: '/ModalContent.html',
+		      controller: 'ModalInstanceCtrl',
+		      backdrop: true,
+		      keyboard: true,
+		      backdropClick: true,
+		      size: 'lg',
+		      resolve: {
+		        data: function () {
+		          return $scope.data;
+		        }
+		      }
+		    });
+
+
+		    modalInstance.result.then(function (selectedItem) {
+		      $scope.selected = selectedItem;
+		        //alert( $scope.selected);
+		    }, function () {
+		      console.log('Modal dismissed at: ' + new Date());
+		      $location.path('/readingList');
+		    });
+
+	      }).error(function(data, status){
+	        console.log(data, status);
+		  $scope.data = {
+		      boldTextTitle: "Please try with a different book",
+		      textAlert : "Book Already Exists in your Reading List",
+		     mode : 'danger'
+		    }
+
+		    $scope.data.mode = 'danger';
+
+		    var modalInstance = $modal.open({
+		      templateUrl: '/ModalContent.html',
+		      controller: 'ModalInstanceCtrl',
+		      backdrop: true,
+		      keyboard: true,
+		      backdropClick: true,
+		      size: 'lg',
+		      resolve: {
+		        data: function () {
+		          return $scope.data;
+		        }
+		      }
+		    });
+
+
+		    modalInstance.result.then(function (selectedItem) {
+		      $scope.selected = selectedItem;
+		    }, function () {
+		      console.log('Modal dismissed at: ' + new Date());
+		      $location.path('/home');
+		    });
+	      });
+		}
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+
+	}])
+
+	.controller('ModalInstanceCtrl', ['$scope', '$route', '$modalInstance', 'data', function ($scope, $route, $modalInstance, data) {
+	  $scope.data = data;
+	  $scope.close = function(/*result*/){
+	    $modalInstance.close($scope.data);
+	  }
+	}])
+
+
+	.controller('ReadingListController', ['$scope', '$filter', '$rootScope', '$location', '$http', function ($scope, filter, $rootScope, $location, $http) {
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+
+	    var resp = $http.get('/api/users/'+$scope.username+'/books', {
+        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+	});
+        resp.success(function(data){
+        console.log(data)
+        $scope.readingList = data;
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+
+      $scope.removeItem = function removeItem(row) {
+      	var resp = $http.delete('/api/users/'+$scope.username+'/books/'+row._id, {
+        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+	});
+        resp.success(function(data){
+        var index = $scope.readingList.indexOf(row);
+        if (index !== -1) {
+            $scope.readingList.splice(index, 1);
+        }
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+      }
+
+      $scope.openBook = function  openBook(row, id) {
+      	if (id != 4) {
+	      	localStorage.setItem("bookId", row._id)
+	      	$location.path('/bookdetails')
+      	}
+
+      }
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+
+	}])
+
+	.controller('BookDetailsController', ['$scope', '$location', '$http', function ($scope, $location, $http) {
+		this.scope = $scope
+
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+
+	    var resp = $http.get('/api/users/'+$scope.username+'/books/'+localStorage.getItem("bookId"), {
+	        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+		});
+        resp.success(function(data){
+        $scope.book = data.details;
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+
+	}])
+
+	.controller('BookStoreController', ['$scope', '$rootScope', '$location', '$http', '$modal', '$route', function ($scope, $rootScope, $location, $http, $modal, $route, $modalInstance, $log) {
+
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.email = localStorage.getItem("email")
+	    $scope.userId = localStorage.getItem("userId")
+	    $scope.followers = localStorage.getItem("followers")
+	    $scope.following = localStorage.getItem("following")
+	    $scope.auth = localStorage.getItem("Auth")
+
+
+	    var resp = $http.get('/api/users/'+$scope.username+'/storebooks', {
+	        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+		});
+        resp.success(function(data){
+        $scope.bookstore = data;
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+
+
+	  $scope.openModal = function () {
+		$scope.data = {
+	      boldTextTitle: "Done",
+	      textAlert : "Successfully Added the Book to Reading List",
+	     mode : 'success'
+	  }
+
+	    var modalInstance = $modal.open({
+	      templateUrl: '/addBookModal.html',
+	      controller: 'BookStoreController',
+	      backdrop: true,
+	      keyboard: true,
+	      backdropClick: true,
+	      size: 'lg',
+	      resolve: {
+	        data: function () {
+	          return $scope.bookForm;
+	        }
+	      }
+	    });
+	    modalInstance.result.then(function (selectedItem) {
+	      $scope.selected = selectedItem;
+	    }, function () {
+	      console.log('Modal dismissed at: ' + new Date());
+	      $location.path('/bookstore');
+	    });
+}
+
+	$scope.setFormScope= function(scope){
+	   this.formScope = scope;
+	}
+
+
+
+		$scope.addBook = function() {
+			$scope.bookTitle = this.formScope.title
+			var postResp = $http({
+			    method: 'POST',
+			    url: '/api/users/'+$scope.username+'/storebooks',
+			    data: {username: $scope.username, userId: $scope.userId, title: this.formScope.title, description: this.formScope.description,
+			    	publisher: this.formScope.publisher, year: this.formScope.year, price: parseInt(this.formScope.price)},
+			    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+			})
+	        postResp.success(function(data){
+		        $scope.respData = data;
+		        $scope.data = {
+			      boldTextTitle: "Done",
+			      textAlert : "Successfully Added the Book To the BookStore",
+			     mode : 'success'
+				 }
+		    var modalInstance = $modal.open({
+		      templateUrl: '/ModalContent.html',
+		      controller: 'ModalInstanceCtrl',
+		      backdrop: true,
+		      keyboard: true,
+		      backdropClick: true,
+		      size: 'lg',
+		      resolve: {
+		        data: function () {
+		          return $scope.data;
+		        }
+		      }
+		    });
+    		$(document).ready(function(){
+			    var from,to,subject,text;
+			        to=$scope.followers
+			        subject=$scope.username + " has added a new Item to the Book Store"
+			        text="Your preferred Seller " + $scope.username + " has added new book, " + $scope.bookTitle + " to the book store. Please check it out"
+			        $.get("https://librarystationapp.herokuapp.com/send",{to:to,subject:subject,text:text},function(data){
+			        if(data=="sent")
+			        {
+			            console.log("email sent")
+			        }
+
+			});
+			    // });
+			});
+		    modalInstance.result.then(function (selectedItem) {
+		      $scope.selected = selectedItem;
+		    }, function () {
+		      console.log('Modal dismissed at: ' + new Date());
+		      $scope.bookstore.push($scope.respData.data)
+		      $route.reload()
+
+		      $location.path('/bookstore');
+		    });
+
+		      }).error(function(data, status){
+		        console.log(data, status);
+		        $scope.loggedData = [];
+		      });
+		}
+
+      $scope.addToCart = function addToCart(row) {
+			var postResp = $http({
+			    method: 'PUT',
+			    url: '/api/users/'+$scope.username,
+			    data: {itemId: row._id, itemTitle: row.title, itemPrice: row.price, checkout: false, follow: false, reduceCart: false},
+			    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+			})
+	        postResp.success(function(data){
+		        $scope.respData = data;
+		        $scope.data = {
+			      boldTextTitle: "Done",
+			      textAlert : "Successfully Added the Book To your Cart",
+			     mode : 'success'
+			 }
+	 		    var modalInstance = $modal.open({
+			      templateUrl: '/ModalContent.html',
+			      controller: 'ModalInstanceCtrl',
+			      backdrop: true,
+			      keyboard: true,
+			      backdropClick: true,
+			      size: 'lg',
+			      resolve: {
+			        data: function () {
+			          return $scope.data;
+			        }
+			      }
+			    });
+
+	      }).error(function(data, status){
+	        console.log(data, status);
+	      });
+      }
+
+
+    $scope.followSeller = function addToCart(row) {
+			var postResp = $http({
+			    method: 'PUT',
+			    url: '/api/users/'+$scope.username,
+			    data: {sellerId: row.userId, email: $scope.email, checkout: false, follow: true},
+			    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+			})
+		    postResp.success(function(data){
+		        $scope.respData = data;
+				localStorage.setItem("followers", $scope.respData.followers)
+				localStorage.setItem("following", $scope.respData.following)
+			    $scope.followers = localStorage.getItem("followers")
+			    $scope.following = localStorage.getItem("following")
+		        $scope.data = {
+			      boldTextTitle: "Done",
+			      textAlert : "The Seller has been added to your prefered Seller List",
+			     mode : 'success'
+			 }
+				    var modalInstance = $modal.open({
+			      templateUrl: '/ModalContent.html',
+			      controller: 'ModalInstanceCtrl',
+			      backdrop: true,
+			      keyboard: true,
+			      backdropClick: true,
+			      size: 'lg',
+			      resolve: {
+			        data: function () {
+			          return $scope.data;
+			        }
+			      }
+			    });
+
+		  }).error(function(data, status){
+		    console.log(data, status);
+		  });
+		}
+
+    $scope.showCart = function () {
+	    var resp = $http.get('/api/users/'+$scope.username, {
+	        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+		});
+        resp.success(function(data){
+        $rootScope.cart = data.cart;
+
+	    var modalInstance = $modal.open({
+	      templateUrl: '/cartModal.html',
+	      controller: 'BookStoreController',
+	      backdrop: true,
+	      keyboard: true,
+	      backdropClick: true,
+	      size: 'md',
+	      resolve: {
+	        data: function () {
+	          return $scope.cart;
+	        }
+	      }
+	    });
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+    }
+
+    $scope.removeCartItem = function removeCartItem(rowIndex) {
+
+
+		$rootScope.cart.splice(rowIndex, 1);
+
+		var putResp = $http({
+			    method: 'PUT',
+			    url: '/api/users/'+$scope.username,
+			    data: {cart: $rootScope.cart, checkout: false, follow: false, reduceCart: true},
+			    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+			})
+	        putResp.success(function(data){
+		        $scope.respData = data;
+
+	      }).error(function(data, status){
+	        console.log(data, status);
+	      });
+    }
+
+    $scope.checkout = function() {
+	   var putResp = $http({
+		    method: 'PUT',
+		    url: '/api/users/'+$scope.username,
+		    data: {itemsBought: $rootScope.cart, checkout: true},
+		    headers: {'Authorization': "'Basic " + $scope.auth + "'", 'Content-Type': 'application/json'}
+		})
+	    putResp.success(function(data){
+	        $scope.respData = data;
+	        $scope.data = {
+		      boldTextTitle: "Done",
+		      textAlert : "Successfully Checked Out the Items",
+		     mode : 'success'
+		 }
+		    var modalInstance = $modal.open({
+		      templateUrl: '/ModalContent.html',
+		      controller: 'ModalInstanceCtrl',
+		      backdrop: true,
+		      keyboard: true,
+		      backdropClick: true,
+		      size: 'lg',
+		      resolve: {
+		        data: function () {
+		          return $scope.data;
+		        }
+		      }
+		    });
+
+		    modalInstance.result.then(function (selectedItem) {
+		      $scope.selected = selectedItem;
+		    }, function () {
+		      console.log('Modal dismissed at: ' + new Date());
+		      $route.reload()
+
+		      $location.path('/bookstore');
+		    });
+
+
+	  }).error(function(data, status){
+	    console.log(data, status);
+	  });
+    }
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+	}])
+
+	.controller('BookBoughtController', ['$scope', '$rootScope', '$location', '$http', '$modal', function ($scope, $rootScope, $location, $http, $modal, $modalInstance, $log) {
+
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+
+	    var resp = $http.get('/api/users/'+$scope.username, {
+	        headers: {'Authorization': "'Basic " + $scope.auth + "'"}
+		});
+        resp.success(function(data){
+        $scope.booksbought = data.itemsBought;
+
+      }).error(function(data, status){
+        console.log(data, status);
+      });
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+  }])
+
+	.controller('LocationController', ['$scope', '$window', '$location', '$http', function ($scope, $window, $location, $http) {
+		$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+		var x = document.getElementById("loc");
+		$scope.model = { myMap: undefined };
+		$scope.getLocation = function () {
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition($scope.showPosition, $scope.showError);
+			} else {
+				x.innerHTML = "Geolocation is not supported by this browser";
+			}
+		}
+
+
+		$scope.showPosition = function (position) {
+			$scope.lat = position.coords.latitude;
+			$scope.lon = position.coords.longitude;
+			$scope.latlon = new google.maps.LatLng($scope.lat, $scope.lon)
+			$scope.mapholder = document.getElementById('mapholder')
+			mapholder.style.height = '600px';
+
+			$scope.mapOptions = {
+				center:$scope.latlon,zoom:14,
+				mapTypeId:google.maps.MapTypeId.ROADMAP,
+				mapTypeControl:true,
+				navigationControlOptions:{style:google.maps.NavigationControlStyle.SMALL}
+			}
+
+			 $scope.request = {
+			    location: $scope.latlon,
+			    radius: 5000,
+			    types: ['library']
+			  };
+
+			$scope.map = new google.maps.Map(document.getElementById("mapholder"), $scope.mapOptions);
+			$scope.marker = new google.maps.Marker({position: $scope.latlon, map: $scope.map, title: 'You are Here!', optimized: false,});
+			$scope.yourWindow = new google.maps.InfoWindow();
+		    google.maps.event.addListener($scope.marker, 'click', function() {
+			    $scope.yourWindow.setContent('You are Here!');
+			    $scope.yourWindow.open($scope.map, this);
+		  });
+			$scope.infowindow = new google.maps.InfoWindow();
+			$scope.service = new google.maps.places.PlacesService($scope.map);
+			$scope.service.nearbySearch($scope.request, callback);
+		}
+
+		$window.callback = function (results, status) {
+		  if (status == google.maps.places.PlacesServiceStatus.OK) {
+		    for (var i = 0; i < results.length; i++) {
+		      $scope.createMarker(results[i]);
+		    }
+		  }
+		}
+
+		$scope.createMarker = function (place) {
+		  $scope.placeLoc = place.geometry.location;
+		  $scope.marker = new google.maps.Marker({
+		    map: $scope.map,
+		    position: place.geometry.location
+		  });
+		  google.maps.event.addListener($scope.marker, 'click', function() {
+		    $scope.infowindow.setContent(place.name);
+		    $scope.infowindow.open($scope.map, this);
+		  });
+		}
+
+
+		$scope.showError = function (error) {
+		    switch(error.code) {
+		        case error.PERMISSION_DENIED:
+		            x.innerHTML = "User denied the request for Geolocation."
+		            break;
+		        case error.POSITION_UNAVAILABLE:
+		            x.innerHTML = "Location information is unavailable."
+		            break;
+		        case error.TIMEOUT:
+		            x.innerHTML = "The request to get user location timed out."
+		            break;
+		        case error.UNKNOWN_ERROR:
+		            x.innerHTML = "An unknown error occurred."
+		            break;
+		    }
+		}
+
+		$scope.getLocation();
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+	}])
+
+	.controller('AboutController', ['$scope', '$rootScope', '$location', '$http', '$modal', function ($scope, $rootScope, $location, $http, $modal, $log) {
+
+	  	$scope.username = localStorage.getItem("username")
+	    $scope.firstname = localStorage.getItem("firstname")
+	    $scope.lastname = localStorage.getItem("lastname")
+	    $scope.auth = localStorage.getItem("Auth")
+
+
+
+
+		var socket = io.connect('https://librarystationapp.herokuapp.com');
+		socket.connect();
+		socket.on('welcome', function (data) {
+	                // process data from node script
+	                $('#messages').append('<li>' + data.message + '</li>');
+
+	            });
+
+
+		$scope.logOut = function() {
+			localStorage.setItem("username", "")
+			localStorage.setItem("firstname", "")
+			localStorage.setItem("lastname", "")
+			localStorage.setItem("Auth", "")
+			localStorage.setItem("email", "")
+			localStorage.setItem("userId", "")
+			localStorage.setItem("followers", [])
+			localStorage.setItem("following", [])
+			$location.path('/');
+		}
+
+
+
+	}])
+
+	.config(['$routeProvider','$locationProvider', function ($routeProvider, $locationProvider) {
+		$routeProvider
+			.when('/', {
+				templateUrl: '/login.html',
+				controller: 'LoginController'
+			})
+
+			.when('/register', {
+				templateUrl: '/register.html',
+				controller: 'RegisterController'
+			})
+
+			.when('/home', {
+				templateUrl: '/home.html',
+				controller: 'HomeController'
+			})
+
+			.when('/bookdetails', {
+				templateUrl: '/bookdetails.html',
+				controller: 'BookDetailsController'
+			})
+
+			.when('/readingList', {
+				templateUrl: '/readingList.html',
+				controller: 'ReadingListController'
+			})
+
+			.when('/openModal', {
+				templateUrl: '/openModal',
+				controller: 'BookStoreController'
+			})
+
+			.when('/booksbought', {
+				templateUrl: '/booksbought.html',
+				controller: 'BookBoughtController'
+			})
+
+			.when('/bookstore', {
+				templateUrl: '/bookstore.html',
+				controller: 'BookStoreController'
+			})
+
+			.when('/location', {
+				templateUrl: '/location.html',
+				controller: 'LocationController'
+			})
+
+			.when('/aboutus', {
+				templateUrl: '/aboutus.html',
+				controller: 'AboutController'
+			})
+
+			.when('/serverstats', {
+				templateUrl: '/serverstats.html',
+				controller: 'AboutController'
+			});
+	}]);
+</script>
+
+</body>
+</html>
